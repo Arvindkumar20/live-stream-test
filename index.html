@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="cmsv6player.min.js"></script>
+
+    <title>Document</title>
+</head>
+<body>
+    
+<div id="cmsv6player"></div>
+
+    <!-- <script src="https://v7.cmsv8.com/808gps/open/player/cmsv6player.min.js"></script> -->
+    <script>
+
+        let videoOption = {
+domId: 'cmsv6player', // id
+isVodMode: true, // display progress bar, live false playback true
+width: 400, // window width
+height: 400,// window height
+lang: 'zh', // language type
+}
+// Initialize the player
+let swfobject = new Cmsv6Player(videoOption)
+
+// console.log(swfobject)
+// Check jsession
+let jsession = 'df89edc12bb944c4835b5fd6d2fe6a11';
+// Equipment number
+let devIdno = '018270900724';
+// specify which channel
+let chnNum = 0;
+// // set the server ip address of the video plug- in
+// let serverIp = '180.167.106.70';
+// // Log on to the server port
+// let serverPort = '8088';
+
+  
+let serverIp = "http://180.167.106.70";
+let serverPort = "6605";
+
+swfobject.setServerInfo(serverIp, serverPort);
+// main or sub- stream, 0: main stream, 1: sub- stream
+let stream = 1;
+// Number of windows
+let winNum = 0;
+// window subscript
+let winIndex = 0;
+// Configure the number of currently displayed windows
+swfobject.setWindowNum(winNum);
+// Set the server ip address and login port of the video plug- in
+swfobject.setServerInfo(serverIp, serverPort);
+// stop playing
+swfobject.stopVideo(winIndex);
+// Play video serial number, session number, device number, channel number, code stream
+swfobject.startVideo(winIndex, jsession, devIdno, chnNum, stream, true);
+
+// Plug- in callback event
+swfobject.addEventListener('onTtxVideoMsg', (index, type) => {
+});
+// console.log(swfobject)
+    </script>
+</body>
+</html>
