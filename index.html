@@ -1,65 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="cmsv6player.min.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Document</title>
+    <title>CMSV6 Live Stream</title>
+
+    <script src="./cmsv6player.min.js"></script>
 </head>
+
 <body>
-    
-<div id="cmsv6player"></div>
 
-    <!-- <script src="https://v7.cmsv8.com/808gps/open/player/cmsv6player.min.js"></script> -->
+    <div id="cmsv6player"></div>
+
     <script>
+        const player = new Cmsv6Player({
+            domId: "cmsv6player",
+            isVodMode: false,
+            width: 800,
+            height: 450,
+            lang: "en"
+        });
 
-        let videoOption = {
-domId: 'cmsv6player', // id
-isVodMode: true, // display progress bar, live false playback true
-width: 400, // window width
-height: 400,// window height
-lang: 'zh', // language type
-}
-// Initialize the player
-let swfobject = new Cmsv6Player(videoOption)
+        const jsession = "df89edc12bb944c4835b5fd6d2fe6a11";
+        const devIdno = "018270900724";
 
-// console.log(swfobject)
-// Check jsession
-let jsession = 'df89edc12bb944c4835b5fd6d2fe6a11';
-// Equipment number
-let devIdno = '018270900724';
-// specify which channel
-let chnNum = 0;
-// // set the server ip address of the video plug- in
-// let serverIp = '180.167.106.70';
-// // Log on to the server port
-// let serverPort = '8088';
+        // const serverIp = "127.0.0.1";
+        // const serverPort = 3000;
 
-  
-let serverIp = "http://180.167.106.70";
-let serverPort = "6605";
+        const winIndex = 0;
+        const channel = 0;
+        const stream = 1;
 
-swfobject.setServerInfo(serverIp, serverPort);
-// main or sub- stream, 0: main stream, 1: sub- stream
-let stream = 1;
-// Number of windows
-let winNum = 0;
-// window subscript
-let winIndex = 0;
-// Configure the number of currently displayed windows
-swfobject.setWindowNum(winNum);
-// Set the server ip address and login port of the video plug- in
-swfobject.setServerInfo(serverIp, serverPort);
-// stop playing
-swfobject.stopVideo(winIndex);
-// Play video serial number, session number, device number, channel number, code stream
-swfobject.startVideo(winIndex, jsession, devIdno, chnNum, stream, true);
+        player.setWindowNum(1);
+        // player.setServerInfo(serverIp, serverPort);
+        const serverIp = "180.167.106.70";
+        const serverPort = 6605;
 
-// Plug- in callback event
-swfobject.addEventListener('onTtxVideoMsg', (index, type) => {
+        // player.setServerInfo(serverIp, serverPort);
+        player.setServerInfo("127.0.0.1", 3000);
+
+        // player.addEventListener(
+        //     "onTtxVideoMsg",
+        //     (...args) => {
+        //         console.log("Player event:", args);
+        //     }
+            
+        // );
+        player.addEventListener("onTtxVideoMsg", (...args) => {
+  console.log("CMS PLAYER EVENT:", args);
 });
-// console.log(swfobject)
+
+const originalFetch = window.fetch;
+
+window.fetch = async function (...args) {
+  const input = args[0];
+
+  const url = typeof input === "string"
+    ? input
+    : input instanceof Request
+      ? input.url
+      : String(input);
+
+  console.log("[FETCH REQUEST]", url);
+
+  const response = await originalFetch.apply(this, args);
+
+  console.log(
+    "[FETCH RESPONSE]",
+    response.status,
+    response.url
+  );
+
+  if (url.includes("/3/1")) {
+    const copy = response.clone();
+
+    copy.text().then(body => {
+      console.log("[CMS RESPONSE]", body);
+    }).catch(console.error);
+  }
+
+  return response;
+};
+
+        player.startVideo(
+            winIndex,
+            jsession,
+            devIdno,
+            channel,
+            stream,
+            true
+        );
     </script>
 </body>
+
 </html>

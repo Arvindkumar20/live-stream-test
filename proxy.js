@@ -2,45 +2,83 @@
 const http = require("http");
 const httpProxy = require("http-proxy");
 
+const PORT = 3000;
+const TARGET = "http://180.167.106.70:6605";
+
+const allowedOrigins = new Set([
+  "http://127.0.0.1:5500",
+  // "http://localhost:5500"
+]);
+
 const proxy = httpProxy.createProxyServer({
-  target: "http://180.167.106.70:8088",
+  target: TARGET,
   changeOrigin: true,
-  ws: true
+  ws: true,
+  timeout: 30000,
+  proxyTimeout: 30000
 });
 
 const server = http.createServer((req, res) => {
+  const origin = req.headers.origin;
+
+  console.log(`[HTTP] ${req.method} ${req.url}`);
+
+  if (allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS"
+  );
+
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+
   if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "http://localhost:5500",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization"
-    });
+    res.writeHead(204);
     return res.end();
   }
 
-  proxy.web(req, res, {
-    target: "http://180.167.106.70:8088"
-  });
+  proxy.web(req, res);
 });
 
-proxy.on("proxyRes", (proxyRes) => {
-  proxyRes.headers["access-control-allow-origin"] =
-    "http://localhost:5500";
-});
+proxy.on("proxyRes", (proxyRes, req) => {
+  console.log(
+    `[UPSTREAM] ${proxyRes.statusCode} ${req.url}`
+  );
 
-proxy.on("error", (err, req, res) => {
-  console.error("Proxy error:", err.message);
+  const origin = req.headers.origin;
 
-  if (!res.headersSent) {
-    res.writeHead(502);
-    res.end("Proxy error");
+  if (allowedOrigins.has(origin)) {
+    proxyRes.headers["access-control-allow-origin"] = origin;
+    proxyRes.headers["vary"] = "Origin";
+  } else {
+    delete proxyRes.headers["access-control-allow-origin"];
   }
 });
 
 server.on("upgrade", (req, socket, head) => {
+  console.log(`[WEBSOCKET] ${req.url}`);
   proxy.ws(req, socket, head);
 });
 
-server.listen(3000, "127.0.0.1", () => {
-  console.log("Proxy: http://127.0.0.1:3000");
+proxy.on("error", (err, req, res) => {
+  console.error("[PROXY ERROR]", err.message);
+
+  if (res && typeof res.writeHead === "function") {
+    if (!res.headersSent) {
+      res.writeHead(502);
+    }
+    res.end("Proxy error");
+  } else {
+    res?.destroy();
+  }
+});
+
+server.listen(PORT, "127.0.0.1", () => {
+  console.log(`Proxy running on port ${PORT}`);
 });
