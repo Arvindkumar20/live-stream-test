@@ -7,7 +7,62 @@
 
     <title>CMSV6 Live Stream</title>
 
-    <script src="./cmsv6player.min.js"></script>
+<script>
+(() => {
+  const original = MediaSource.prototype.addSourceBuffer;
+  let audioBuffer = null;
+  let videoBuffer = null;
+  let corrected = false;
+
+  MediaSource.prototype.addSourceBuffer = function (mime) {
+    const sb = original.call(this, mime);
+
+    if (mime.startsWith("audio/")) {
+      audioBuffer = sb;
+    }
+
+    if (mime.startsWith("video/")) {
+      videoBuffer = sb;
+    }
+
+    function synchronize() {
+      if (corrected || !audioBuffer || !videoBuffer) return;
+      if (audioBuffer.updating || videoBuffer.updating) return;
+
+      try {
+        if (!audioBuffer.buffered.length ||
+            !videoBuffer.buffered.length) return;
+
+        const audioStart = audioBuffer.buffered.start(0);
+        const videoStart = videoBuffer.buffered.start(0);
+
+        const difference = audioStart - videoStart;
+
+        if (Math.abs(difference) > 5) {
+          audioBuffer.timestampOffset = -difference;
+          corrected = true;
+
+          console.log(
+            "[CMS FIX] Audio timestamp offset:",
+            -difference
+          );
+        }
+      } catch (error) {
+        console.warn("[CMS FIX]", error.message);
+      }
+    }
+
+    sb.addEventListener("updateend", synchronize);
+
+    return sb;
+  };
+})();
+</script>
+
+<script src="./cmsv6player.min.js"></script>
+
+
+
 </head>
 
 <body>
@@ -33,10 +88,10 @@
         const channel = 0;
         const stream = 1;
 
-        player.setWindowNum(1);
+        player.setWindowNum(4);
         // player.setServerInfo(serverIp, serverPort);
-        const serverIp = "180.167.106.70";
-        const serverPort = 6605;
+        // const serverIp = "180.167.106.70";
+        // const serverPort = 6605;
 
         // player.setServerInfo(serverIp, serverPort);
         player.setServerInfo("127.0.0.1", 3000);
@@ -52,46 +107,19 @@
   console.log("CMS PLAYER EVENT:", args);
 });
 
-const originalFetch = window.fetch;
 
-window.fetch = async function (...args) {
-  const input = args[0];
 
-  const url = typeof input === "string"
-    ? input
-    : input instanceof Request
-      ? input.url
-      : String(input);
 
-  console.log("[FETCH REQUEST]", url);
-
-  const response = await originalFetch.apply(this, args);
-
-  console.log(
-    "[FETCH RESPONSE]",
-    response.status,
-    response.url
-  );
-
-  if (url.includes("/3/1")) {
-    const copy = response.clone();
-
-    copy.text().then(body => {
-      console.log("[CMS RESPONSE]", body);
-    }).catch(console.error);
-  }
-
-  return response;
-};
-
-        player.startVideo(
-            winIndex,
+        [1,2,3,4].map((i)=>{
+            player.startVideo(
+            i-1,
             jsession,
             devIdno,
-            channel,
+             i-1,
             stream,
             true
         );
+        })
     </script>
 </body>
 
